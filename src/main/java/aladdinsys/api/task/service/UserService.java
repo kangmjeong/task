@@ -8,5 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 public interface UserService {
     String signUp (UserDTO userDTO);
     String addAllowedUser(AllowedUserDTO allowedUserDTO);
+    String login (HttpServletRequest req, HttpServletResponse res, UserDTO userDTO);
+
 
 }

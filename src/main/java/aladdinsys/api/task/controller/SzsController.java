@@ -4,6 +4,8 @@ package aladdinsys.api.task.controller;
 import aladdinsys.api.task.dto.AllowedUserDTO;
 import aladdinsys.api.task.dto.UserDTO;
 import aladdinsys.api.task.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +42,11 @@ public class SzsController {
     public ResponseEntity<String> addAllowedUser(@RequestBody AllowedUserDTO allowedUserDto) {
         userService.addAllowedUser(allowedUserDto);
         return ResponseEntity.ok("Allowed user added");
+    }
+
+    @RequestMapping(value = "/login", method = RequestMethod.POST, produces = "text/plain;charset=UTF-8")
+    public ResponseEntity<?> login(HttpServletRequest req, HttpServletResponse res, @RequestBody UserDTO userDTO) throws Exception {
+        return ResponseEntity.ok(userService.login(req, res, userDTO));
     }
 
 }

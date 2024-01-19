@@ -7,13 +7,15 @@ import aladdinsys.api.task.entity.UserEntity;
 import aladdinsys.api.task.repository.AllowedUserRepository;
 import aladdinsys.api.task.repository.UserRepository;
 import aladdinsys.api.task.service.UserService;
+import aladdinsys.api.task.utils.jwt.JwtTokenUtil;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.encrypt.AesBytesEncryptor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -27,13 +29,25 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserRepository userRepository;
+
     @Autowired
     private AllowedUserRepository allowedUserRepository;
+
     @Autowired
     private PasswordEncoder passwordEncoder;
+
     @Autowired
     private AesBytesEncryptor aesBytesEncryptor;
 
+    @Autowired
+    private JwtTokenUtil jwtTokenUtil;
+
+    /**
+     * 회원가입
+     *
+     * @param userDTO
+     * @return
+     */
     public String signUp(UserDTO userDTO) {
         JsonObject result = new JsonObject();
 
@@ -73,13 +87,28 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * 아이디 중복 체크
-     *
-     * @param userId
+     * 로그인
+     * @param req
+     * @param res
+     * @param userDTO
      * @return
      */
-    public boolean isDuplicated(String userId) {
-        return userRepository.findByUserId(userId).isPresent();
+    public String login(HttpServletRequest req, HttpServletResponse res, UserDTO userDTO) {
+        String id = userDTO.getUserId();
+        String password = userDTO.getPassword();
+        UserEntity userEntity = userRepository.findByUserId(id)
+                .orElseThrow(() -> new UsernameNotFoundException("회원이 존재하지 않습니다."));
+
+        if (!passwordEncoder.matches(password, userEntity.getPassword())) {
+            throw new BadCredentialsException("비밀번호가 일치하지 않습니다.");
+        }
+
+        // UserEntity를 UserDTO로 변환
+        UserDTO userDto = convertEntityToDto(userEntity);
+
+        // UserDTO를 사용하여 토큰 생성
+        String token = jwtTokenUtil.generateToken(userDto);
+        return token;
     }
 
     /**
@@ -95,6 +124,16 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
+     * 아이디 중복 체크
+     *
+     * @param userId
+     * @return
+     */
+    public boolean isDuplicated(String userId) {
+        return userRepository.findByUserId(userId).isPresent();
+    }
+
+    /**
      * 암호화 로직
      * @param regNo
      * @return
@@ -103,6 +142,15 @@ public class UserServiceImpl implements UserService {
         byte[] regNoBytes = regNo.getBytes(StandardCharsets.UTF_8);
         byte[] encryptedBytes = aesBytesEncryptor.encrypt(regNoBytes);
         return Base64.getEncoder().encodeToString(encryptedBytes);
+    }
+    private UserDTO convertEntityToDto(UserEntity userEntity) {
+        UserDTO userDto = new UserDTO();
+        userDto.setUserId(userEntity.getUserId());
+        userDto.setName(userEntity.getName());
+        userDto.setPassword(userEntity.getPassword()); // 또는 null 설정, 비밀번호는 토큰 생성에 필요하지 않을 수 있음
+        userDto.setRegNo(userEntity.getRegNo()); // 필요한 경우
+        // 기타 필요한 속성 추가
+        return userDto;
     }
 
 
