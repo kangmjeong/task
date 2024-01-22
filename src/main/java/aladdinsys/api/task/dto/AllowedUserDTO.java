@@ -11,5 +11,6 @@ public class AllowedUserDTO {
 
     @NotBlank(message = "주민등록번호를 입력해주세요.")
     public String regNo;
+
 }
 

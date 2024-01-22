@@ -1,7 +1,7 @@
 package aladdinsys.api.task.utils;
 
 import aladdinsys.api.task.utils.jwt.JwtAuthFilter;
-import aladdinsys.api.task.utils.jwt.JwtAuthenticationEntryPoint;
+//import aladdinsys.api.task.utils.jwt.JwtAuthenticationEntryPoint;
 import aladdinsys.api.task.utils.jwt.JwtTokenUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,12 +23,6 @@ public class SecurityConfiguration {
 
     @Value("${encryption.secret}")
     private String secret;
-
-    @Value("${encryption.salt}")
-    private String salt; //salt는 암호화해줄 문자열에 임의의 문자열을 덧붙이는 것을 의미
-
-    @Autowired
-    private JwtAuthenticationEntryPoint unauthorizedHandler;
 
     @Autowired
     private JwtTokenUtil jwtTokenUtil;

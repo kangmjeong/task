@@ -37,10 +37,10 @@ public class JwtTokenUtil implements Serializable {
      * @return
      */
     public String getUserIdFromToken(String token) throws JwtException {
-        try{
+        try {
             final Claims claims = getClaimFromToken(token, Function.identity());
             return claims.get("userId", String.class);
-        }catch(JwtException ex){
+        } catch (JwtException ex) {
             throw ex;
         }
     }
@@ -51,7 +51,7 @@ public class JwtTokenUtil implements Serializable {
      * @param token
      * @return
      */
-    public Date getExpirationDateFromToken(String token){
+    public Date getExpirationDateFromToken(String token) {
         return getClaimFromToken(token, Claims::getExpiration);
     }
 
@@ -76,17 +76,18 @@ public class JwtTokenUtil implements Serializable {
      * @param token
      * @return
      */
-    private Boolean isTokenExpired(String token){
+    private Boolean isTokenExpired(String token) {
         final Date expiration = getExpirationDateFromToken(token);
         return expiration.before(new Date());
     }
 
     /**
      * userId로 토큰 생성
+     *
      * @param userDTO
      * @return
      */
-    public String generateToken(UserDTO userDTO){
+    public String generateToken(UserDTO userDTO) {
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("name", userDTO.getName());
@@ -114,6 +115,7 @@ public class JwtTokenUtil implements Serializable {
 
     /**
      * 토큰 검증
+     *
      * @param token
      * @return
      * @throws Exception
@@ -133,10 +135,10 @@ public class JwtTokenUtil implements Serializable {
      * @param userId
      */
     public void setUserAuthentication(HttpServletRequest request, String userId) {
-        UserAuthentication authentication = new UserAuthentication(userId, null, null); //id를 인증한다.
-        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request)); //기본적으로 제공한 details 세팅
+        UserAuthentication authentication = new UserAuthentication(userId, null, null);
+        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-        SecurityContextHolder.getContext().setAuthentication(authentication); //세션에서 계속 사용하기 위해 securityContext에 Authentication 등록
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     /**

@@ -115,8 +115,49 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    @Override
+    public boolean updateUserDetails(String userId, UserDTO userDTO, HttpServletRequest req) {
+        String authenticatedUserId = verifyTokenAndGetUserId(req);
+        if (!authenticatedUserId.equals(userId)) {
+            throw new BadCredentialsException("사용자 ID가 일치하지 않습니다.");
+        }
+
+        if (userDTO.getUserId() != null && !userDTO.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("userId를 변경할 수 없습니다.");
+        }
+
+        if (userDTO.getRegNo() != null) {
+            throw new IllegalArgumentException("RegNO를 변경할 수 없습니다.");
+        }
+
+        UserEntity userEntity = userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+
+        if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
+            String encodedPassword = passwordEncoder.encode(userDTO.getPassword());
+            userEntity.setPassword(encodedPassword);
+        }
+        userRepository.save(userEntity);
+        return true;
+    }
+
+    @Override
+    public boolean deleteUser(String userId, HttpServletRequest req) {
+        String authenticatedUserId = verifyTokenAndGetUserId(req);
+        if (!authenticatedUserId.equals(userId)) {
+            throw new BadCredentialsException("삭제 권한이 없습니다.");
+        }
+
+        UserEntity userEntity = userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("삭제할 사용자를 찾을 수 없습니다."));
+
+        userRepository.delete(userEntity);
+        return true;
+    }
+
     /**
      * 회원가입이 가능한 유저 등록
+     *
      * @param allowedUserDTO
      * @return
      */
@@ -139,6 +180,7 @@ public class UserServiceImpl implements UserService {
 
     /**
      * 암호화 로직
+     *
      * @param regNo
      * @return
      */
@@ -152,10 +194,23 @@ public class UserServiceImpl implements UserService {
         UserDTO userDto = new UserDTO();
         userDto.setUserId(userEntity.getUserId());
         userDto.setName(userEntity.getName());
-        userDto.setPassword(userEntity.getPassword()); // 또는 null 설정, 비밀번호는 토큰 생성에 필요하지 않을 수 있음
-        userDto.setRegNo(userEntity.getRegNo()); // 필요한 경우
-        // 기타 필요한 속성 추가
         return userDto;
+    }
+
+    /**
+     * 토큰 검증 및 인증된 사용자 ID 반환
+     *
+     * @param req HttpServletRequest
+     * @return 인증된 사용자 ID
+     * @throws BadCredentialsException 토큰이 유효하지 않은 경우
+     */
+    private String verifyTokenAndGetUserId(HttpServletRequest req) throws BadCredentialsException {
+        String jwt = jwtTokenUtil.getJwtFromRequest(req);
+        if (jwt != null && jwtTokenUtil.validateToken(jwt)) {
+            return jwtTokenUtil.getUserIdFromToken(jwt);
+        } else {
+            throw new BadCredentialsException("유효하지 않은 토큰입니다.");
+        }
     }
 
 

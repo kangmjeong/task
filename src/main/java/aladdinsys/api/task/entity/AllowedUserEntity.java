@@ -1,13 +1,16 @@
 package aladdinsys.api.task.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 
 @Entity
-@Table(name="ALLOWEDUSERS")
+@Table(name = "ALLOWEDUSERS")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AllowedUserEntity {
