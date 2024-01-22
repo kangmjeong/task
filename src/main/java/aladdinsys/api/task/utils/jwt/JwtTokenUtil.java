@@ -94,8 +94,8 @@ public class JwtTokenUtil implements Serializable {
                 .setHeaderParam("typ", "JWT")
                 .setClaims(claims)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expirationTime * 1000)) // Make sure expirationTime is defined somewhere in your class
-                .signWith(SignatureAlgorithm.HS512, secret) // secret should be defined and initialized
+                .setExpiration(new Date(System.currentTimeMillis() + expirationTime * 1000))
+                .signWith(SignatureAlgorithm.HS512, secret)
                 .compact();
     }
 
