@@ -49,4 +49,10 @@ public class SzsController {
         return ResponseEntity.ok(userService.login(req, res, userDTO));
     }
 
+    @RequestMapping(value = "/me", method = RequestMethod.GET, produces = "text/plain;charset=UTF-8")
+    public ResponseEntity<?> me(HttpServletRequest req) {
+        // UserDTO는 필요하지 않으므로 매개변수에서 제거했습니다.
+        return ResponseEntity.ok(userService.me(req));
+    }
+
 }

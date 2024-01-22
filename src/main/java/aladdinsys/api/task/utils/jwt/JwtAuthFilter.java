@@ -1,6 +1,5 @@
 package aladdinsys.api.task.utils.jwt;
 
-import aladdinsys.api.task.service.UserService;
 import io.jsonwebtoken.Claims;
 import io.micrometer.common.util.StringUtils;
 import jakarta.servlet.FilterChain;
@@ -24,29 +23,27 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         try {
-            // jwt 토큰값 깨내기.
+            // jwt 토큰값 꺼내기
             String jwt = jwtTokenUtil.getJwtFromRequest(request);
 
             if (StringUtils.isNotEmpty(jwt) && jwtTokenUtil.validateToken(jwt)) {
-                // 토큰에서 userId 추출.
-                String userId = jwtTokenUtil.getUserIdFromToken(jwt); //jwt에서 사용자 id를 꺼낸다.
-                String claims = jwtTokenUtil.getClaimFromToken(jwt, Claims::getId);
+
+                String userId = jwtTokenUtil.getUserIdFromToken(jwt);
 
                 jwtTokenUtil.setUserAuthentication(request, userId);
-
             } else {
                 if (StringUtils.isEmpty(jwt)) {
-                    request.setAttribute("unauthorization", "401 인증키 없음.");
-                }
-                if (jwtTokenUtil.validateToken(jwt)) {
-                    request.setAttribute("unauthorization", "401-001 인증키 만료.");
+                    request.setAttribute("unauthorization", "인증키 없음.");
+                } else {
+
+                    if (!jwtTokenUtil.validateToken(jwt)) {
+                        request.setAttribute("unauthorization", "인증키 만료.");
+                    }
                 }
             }
         } catch (Exception ex) {
             logger.error("Could not set user authentication in security context", ex);
-//            throw new Exception("인증서 정보를 확인해주세요.");
         }
-
         filterChain.doFilter(request, response);
     }
 }

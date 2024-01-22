@@ -3,6 +3,7 @@ package aladdinsys.api.task.utils.jwt;
 
 import aladdinsys.api.task.dto.UserDTO;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.micrometer.common.util.StringUtils;
@@ -22,11 +23,12 @@ import java.util.function.Function;
 @Service
 @Component
 public class JwtTokenUtil implements Serializable {
-    private static final long serialVersionUID = -798416586417070603L;
-    private static final long JWT_TOKEN_VALIDITY = 5 * 60 * 60;
 
     @Value("${jwt.secret}")
     private String secret;
+
+    @Value("${jwt.expiration_time}")
+    private long expirationTime;
 
     /**
      * jwt 토큰에서 userId 검색
@@ -34,11 +36,12 @@ public class JwtTokenUtil implements Serializable {
      * @param token
      * @return
      */
-    public String getUserIdFromToken(String token) throws Exception {
+    public String getUserIdFromToken(String token) throws JwtException {
         try{
-            return getClaimFromToken(token, Claims::getSubject);
-        }catch(Exception ex){
-            throw new Exception("Exception!!");
+            final Claims claims = getClaimFromToken(token, Function.identity());
+            return claims.get("userId", String.class);
+        }catch(JwtException ex){
+            throw ex;
         }
     }
 
@@ -84,14 +87,13 @@ public class JwtTokenUtil implements Serializable {
      * @return
      */
     public String generateToken(UserDTO userDTO){
-        String[] regNo = userDTO.getRegNo().split("-");
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("name", userDTO.getName());
         claims.put("userId", userDTO.getUserId());
-        claims.put("regNo", userDTO.getRegNo());
         return doGenerateToken(claims, userDTO.getUserId());
     }
+
 
     /**
      * 토큰 설정 및 생성
@@ -104,9 +106,8 @@ public class JwtTokenUtil implements Serializable {
         return Jwts.builder()
                 .setHeaderParam("typ", "JWT")
                 .setClaims(claims)
-                .setSubject(userId)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + JWT_TOKEN_VALIDITY * 1000))
+                .setExpiration(new Date(System.currentTimeMillis() + expirationTime * 1000))
                 .signWith(SignatureAlgorithm.HS512, secret)
                 .compact();
     }
@@ -117,10 +118,12 @@ public class JwtTokenUtil implements Serializable {
      * @return
      * @throws Exception
      */
-    public Boolean validateToken(String token) throws Exception {
-        final String userId = getUserIdFromToken(token);
-        System.out.println("validateToken :: " + userId);
-        return!isTokenExpired(token);
+    public Boolean validateToken(String token) throws JwtException {
+        try {
+            return !isTokenExpired(token);
+        } catch (JwtException ex) {
+            throw ex;
+        }
     }
 
     /**
@@ -144,8 +147,8 @@ public class JwtTokenUtil implements Serializable {
      */
     public String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
-        if (StringUtils.isNotEmpty(bearerToken)) {
-            return bearerToken;
+        if (StringUtils.isNotEmpty(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
         }
         return null;
     }

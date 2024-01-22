@@ -9,6 +9,7 @@ public interface UserService {
     String signUp (UserDTO userDTO);
     String addAllowedUser(AllowedUserDTO allowedUserDTO);
     String login (HttpServletRequest req, HttpServletResponse res, UserDTO userDTO);
+    String me (HttpServletRequest req);
 
 
 }

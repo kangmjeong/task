@@ -47,7 +47,7 @@ public class SecurityConfiguration {
                 .formLogin(formLogin->formLogin.disable()) // 기본 로그인 페이지 비활성화
                 .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable())) // H2 콘솔과 같은 프레임/iframe 사용을 위해 비활성화
                 .authorizeRequests(authorizeRequests -> authorizeRequests
-                                .requestMatchers("/h2-console/*", "/szs/signup", "/swagger-ui.html", "/szs/addAllowedUser").permitAll() // 특정 경로 허용
+                                .requestMatchers("/h2-console/*", "/szs/signup", "/szs/login", "/swagger-ui.html", "/szs/addAllowedUser").permitAll() // 특정 경로 허용
                                 .requestMatchers("/**").authenticated()) //나머지 요청은 인증 필요
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

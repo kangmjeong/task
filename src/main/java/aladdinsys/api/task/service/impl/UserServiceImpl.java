@@ -42,12 +42,6 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private JwtTokenUtil jwtTokenUtil;
 
-    /**
-     * 회원가입
-     *
-     * @param userDTO
-     * @return
-     */
     public String signUp(UserDTO userDTO) {
         JsonObject result = new JsonObject();
 
@@ -86,29 +80,39 @@ public class UserServiceImpl implements UserService {
         return new Gson().toJson(result);
     }
 
-    /**
-     * 로그인
-     * @param req
-     * @param res
-     * @param userDTO
-     * @return
-     */
     public String login(HttpServletRequest req, HttpServletResponse res, UserDTO userDTO) {
         String id = userDTO.getUserId();
         String password = userDTO.getPassword();
-        UserEntity userEntity = userRepository.findByUserId(id)
-                .orElseThrow(() -> new UsernameNotFoundException("회원이 존재하지 않습니다."));
+        try {
+            UserEntity userEntity = userRepository.findByUserId(id)
+                    .orElseThrow(() -> new UsernameNotFoundException("회원이 존재하지 않습니다."));
 
-        if (!passwordEncoder.matches(password, userEntity.getPassword())) {
-            throw new BadCredentialsException("비밀번호가 일치하지 않습니다.");
+            if (!passwordEncoder.matches(password, userEntity.getPassword())) {
+                throw new BadCredentialsException("비밀번호가 일치하지 않습니다.");
+            }
+
+            UserDTO userDto = convertEntityToDto(userEntity);
+            String token = jwtTokenUtil.generateToken(userDto);
+            return token;
+
+        } catch (UsernameNotFoundException e) {
+            return "아이디가 틀렸습니다.";
+        } catch (BadCredentialsException e) {
+            return "비밀번호가 틀렸습니다.";
         }
+    }
 
-        // UserEntity를 UserDTO로 변환
-        UserDTO userDto = convertEntityToDto(userEntity);
-
-        // UserDTO를 사용하여 토큰 생성
-        String token = jwtTokenUtil.generateToken(userDto);
-        return token;
+    @Override
+    public String me(HttpServletRequest req) throws UsernameNotFoundException, BadCredentialsException {
+        String jwt = jwtTokenUtil.getJwtFromRequest(req);
+        if (jwt != null && jwtTokenUtil.validateToken(jwt)) {
+            String userId = jwtTokenUtil.getUserIdFromToken(jwt);
+            UserEntity userEntity = userRepository.findById(userId)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found."));
+            return new Gson().toJson(userEntity);
+        } else {
+            throw new BadCredentialsException("Invalid token.");
+        }
     }
 
     /**
@@ -143,6 +147,7 @@ public class UserServiceImpl implements UserService {
         byte[] encryptedBytes = aesBytesEncryptor.encrypt(regNoBytes);
         return Base64.getEncoder().encodeToString(encryptedBytes);
     }
+
     private UserDTO convertEntityToDto(UserEntity userEntity) {
         UserDTO userDto = new UserDTO();
         userDto.setUserId(userEntity.getUserId());
