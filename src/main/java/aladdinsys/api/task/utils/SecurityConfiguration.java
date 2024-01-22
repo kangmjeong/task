@@ -3,6 +3,7 @@ package aladdinsys.api.task.utils;
 import aladdinsys.api.task.utils.jwt.JwtAuthFilter;
 //import aladdinsys.api.task.utils.jwt.JwtAuthenticationEntryPoint;
 import aladdinsys.api.task.utils.jwt.JwtTokenUtil;
+import io.jsonwebtoken.Jwt;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,15 +18,17 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
-@RequiredArgsConstructor
 @EnableWebSecurity
 public class SecurityConfiguration {
 
     @Value("${encryption.secret}")
     private String secret;
 
-    @Autowired
-    private JwtTokenUtil jwtTokenUtil;
+    private final JwtTokenUtil jwtTokenUtil;
+
+    public SecurityConfiguration(JwtTokenUtil jwtTokenUtil) {
+        this.jwtTokenUtil = jwtTokenUtil;
+    }
 
     @Bean
     public JwtAuthFilter jwtAuthFilter(JwtTokenUtil jwtTokenUtil) {
@@ -39,9 +42,8 @@ public class SecurityConfiguration {
                 .cors(cors->cors.disable())  // CORS 비활성화
                 .csrf(csrf->csrf.disable()) // 토큰 사용하는 방식으로 CSRF 비활성화
                 .formLogin(formLogin->formLogin.disable()) // 기본 로그인 페이지 비활성화
-                .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable())) // H2 콘솔과 같은 프레임/iframe 사용을 위해 비활성화
                 .authorizeRequests(authorizeRequests -> authorizeRequests
-                                .requestMatchers("/h2-console/*", "/szs/signup", "/szs/login", "/swagger-ui.html", "/szs/addAllowedUser").permitAll() // 특정 경로 허용
+                                .requestMatchers("/h2-console/*", "/szs/signup", "/szs/login", "/error", "/swagger-ui.html", "/szs/allowed-user").permitAll() // 특정 경로 허용
                                 .requestMatchers("/**").authenticated()) //나머지 요청은 인증 필요
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

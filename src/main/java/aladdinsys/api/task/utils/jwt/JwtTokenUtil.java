@@ -67,7 +67,10 @@ public class JwtTokenUtil implements Serializable {
      * @return
      */
     private Claims getAllClaimsFromToken(String token) {
-        return Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
+        return Jwts.parser()
+                .setSigningKey(secret)
+                .parseClaimsJws(token)
+                .getBody();
     }
 
     /**
@@ -81,35 +84,18 @@ public class JwtTokenUtil implements Serializable {
         return expiration.before(new Date());
     }
 
-    /**
-     * userId로 토큰 생성
-     *
-     * @param userDTO
-     * @return
-     */
     public String generateToken(UserDTO userDTO) {
-
+        // Claims creation
         Map<String, Object> claims = new HashMap<>();
-        claims.put("name", userDTO.getName());
-        claims.put("userId", userDTO.getUserId());
-        return doGenerateToken(claims, userDTO.getUserId());
-    }
+        claims.put("name", userDTO.name());
+        claims.put("userId", userDTO.userId());
 
-
-    /**
-     * 토큰 설정 및 생성
-     *
-     * @param claims
-     * @param userId
-     * @return
-     */
-    private String doGenerateToken(Map<String, Object> claims, String userId) {
         return Jwts.builder()
                 .setHeaderParam("typ", "JWT")
                 .setClaims(claims)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expirationTime * 1000))
-                .signWith(SignatureAlgorithm.HS512, secret)
+                .setExpiration(new Date(System.currentTimeMillis() + expirationTime * 1000)) // Make sure expirationTime is defined somewhere in your class
+                .signWith(SignatureAlgorithm.HS512, secret) // secret should be defined and initialized
                 .compact();
     }
 
