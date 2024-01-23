@@ -14,6 +14,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.encrypt.AesBytesEncryptor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,7 +25,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 @Service
-@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
@@ -44,10 +45,8 @@ public class UserServiceImpl implements UserService {
     public String signUp(UserDTO userDTO) {
         JsonObject result = new JsonObject();
 
-        // 주민등록번호 암호화
         String encryptedRegNo = encryptRegNo(userDTO.regNo());
 
-        // 회원가입 가능 여부 확인 (암호화된 regNo 사용)
         boolean isAllowed = allowedUserRepository
                 .findByNameAndRegNo(userDTO.name(), encryptedRegNo)
                 .isPresent();
@@ -113,51 +112,55 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public boolean updateUserDetails(String userId, UserDTO userDTO, HttpServletRequest req) {
-        String authenticatedUserId = verifyTokenAndGetUserId(req);
-        if (!authenticatedUserId.equals(userId)) {
-            throw new BadCredentialsException("사용자 ID가 일치하지 않습니다.");
-        }
+    public String updateUserDetails(String userId, UserDTO userDTO, HttpServletRequest req) {
+        try {
 
-        if (userDTO.userId() != null && !userDTO.userId().equals(userId)) {
-            throw new IllegalArgumentException("userId를 변경할 수 없습니다.");
-        }
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String authenticatedUserId = authentication.getName();
 
-        if (userDTO.regNo() != null) {
-            throw new IllegalArgumentException("RegNO를 변경할 수 없습니다.");
-        }
+            if (!authenticatedUserId.equals(userId)) {
+                return "수정할 수 있는 권한이 없습니다.";
+            }
 
-        UserEntity userEntity = userRepository.findById(userId)
-                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+            if (userDTO.userId() != null && !userDTO.userId().equals(userId)) {
+                return "사용자 ID는 변경할 수 없습니다.";
+            }
 
-        if (userDTO.password() != null && !userDTO.password().isEmpty()) {
-            String encodedPassword = passwordEncoder.encode(userDTO.password());
-            userEntity.setPassword(encodedPassword);
+            if (userDTO.regNo() != null) {
+                return "주민등록번호는 변경할 수 없습니다.";
+            }
+
+            UserEntity userEntity = userRepository.findById(userId)
+                    .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+
+            if (userDTO.password() != null && !userDTO.password().isEmpty()) {
+                String encodedPassword = passwordEncoder.encode(userDTO.password());
+                userEntity.setPassword(encodedPassword);
+            }
+
+            userRepository.save(userEntity);
+
+            return "사용자 정보가 성공적으로 업데이트되었습니다.";
+
+        } catch (Exception ex) {
+            return "사용자 정보 업데이트 중 오류가 발생했습니다.";
         }
-        userRepository.save(userEntity);
-        return true;
     }
 
     @Override
-    public boolean deleteUser(String userId, HttpServletRequest req) {
-        String authenticatedUserId = verifyTokenAndGetUserId(req);
-        if (!authenticatedUserId.equals(userId)) {
-            throw new BadCredentialsException("삭제 권한이 없습니다.");
+    public String deleteUser(String userId, HttpServletRequest req) {
+        try {
+            UserEntity userEntity = userRepository.findById(userId)
+                    .orElseThrow(() -> new UsernameNotFoundException("삭제할 사용자를 찾을 수 없습니다."));
+
+            userRepository.delete(userEntity);
+            return "사용자가 성공적으로 삭제되었습니다.";
+        } catch (Exception ex) {
+            return "사용자 삭제 중 예기치 못한 오류가 발생했습니다.";
         }
-
-        UserEntity userEntity = userRepository.findById(userId)
-                .orElseThrow(() -> new UsernameNotFoundException("삭제할 사용자를 찾을 수 없습니다."));
-
-        userRepository.delete(userEntity);
-        return true;
     }
 
-    /**
-     * 회원가입이 가능한 유저 등록
-     *
-     * @param allowedUserDTO
-     * @return
-     */
+    @Override
     public String addAllowedUser(AllowedUserDTO allowedUserDTO) {
         String encryptedRegNo = encryptRegNo(allowedUserDTO.regNo());
         AllowedUserEntity user = new AllowedUserEntity(allowedUserDTO.name(), encryptedRegNo);
@@ -175,12 +178,6 @@ public class UserServiceImpl implements UserService {
         return userRepository.findByUserId(userId).isPresent();
     }
 
-    /**
-     * 암호화 로직
-     *
-     * @param regNo
-     * @return
-     */
     private String encryptRegNo(String regNo) {
         byte[] regNoBytes = regNo.getBytes(StandardCharsets.UTF_8);
         byte[] encryptedBytes = aesBytesEncryptor.encrypt(regNoBytes);

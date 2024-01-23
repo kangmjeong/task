@@ -16,9 +16,9 @@ public interface UserService {
 
     String me(HttpServletRequest req);
 
-    boolean updateUserDetails(String userId, UserDTO userDTO, HttpServletRequest req);
+    String updateUserDetails(String userId, UserDTO userDTO, HttpServletRequest req);
 
-    boolean deleteUser(String userId, HttpServletRequest req);
+    String deleteUser(String userId, HttpServletRequest req);
 
 
 }

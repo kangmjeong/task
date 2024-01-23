@@ -11,9 +11,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
+
 @RestController
 @RequestMapping(value = "/szs")
-@Slf4j
 public class SzsController {
 
     private final UserService userService;
@@ -42,8 +43,9 @@ public class SzsController {
         return ResponseEntity.ok(userService.me(req));
     }
 
-    @RequestMapping(value = "/modify/{userId}", method = RequestMethod.PUT)
-    public ResponseEntity<?> modify(@PathVariable String userId, @RequestBody UserDTO userDTO, HttpServletRequest req) {
+    @RequestMapping(value = "/modify", method = RequestMethod.PUT)
+    public ResponseEntity<?> modify(@RequestBody UserDTO userDTO, HttpServletRequest req, Principal principal) {
+        String userId = principal.getName();
         return ResponseEntity.ok(userService.updateUserDetails(userId, userDTO, req));
     }
 
