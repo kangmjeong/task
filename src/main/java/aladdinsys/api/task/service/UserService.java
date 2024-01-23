@@ -9,8 +9,6 @@ import aladdinsys.api.task.repository.UserRepository;
 import aladdinsys.api.task.utils.jwt.JwtTokenUtil;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -38,7 +36,6 @@ public class UserService {
         this.aesBytesEncryptor = aesBytesEncryptor;
         this.jwtTokenUtil = jwtTokenUtil;
     }
-
 
     public String signUp(UserDTO userDTO) {
         JsonObject result = new JsonObject();
@@ -74,7 +71,7 @@ public class UserService {
         return new Gson().toJson(result);
     }
 
-    public String login(HttpServletRequest req, HttpServletResponse res, UserDTO userDTO) {
+    public String login(UserDTO userDTO) {
         String id = userDTO.userId();
         String password = userDTO.password();
         try {
@@ -96,20 +93,17 @@ public class UserService {
         }
     }
 
-    public String me(HttpServletRequest req) throws UsernameNotFoundException, BadCredentialsException {
-        String jwt = jwtTokenUtil.getJwtFromRequest(req);
-        if (jwt != null && jwtTokenUtil.validateToken(jwt)) {
-            String userId = jwtTokenUtil.getUserIdFromToken(jwt);
-            UserEntity userEntity = userRepository.findById(userId)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found."));
-            return new Gson().toJson(userEntity);
-        } else {
-            throw new BadCredentialsException("Invalid token.");
-        }
-    }
-    public String updateUserDetails(String userId, UserDTO userDTO, HttpServletRequest req) {
-        try {
+    public String userDetail() throws UsernameNotFoundException, BadCredentialsException {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userId = authentication.getName();
 
+        UserEntity userEntity = userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+        return new Gson().toJson(userEntity);
+    }
+
+    public String updateUserDetails(String userId, UserDTO userDTO) {
+        try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String authenticatedUserId = authentication.getName();
 
@@ -142,7 +136,7 @@ public class UserService {
         }
     }
 
-    public String deleteUser(String userId, HttpServletRequest req) {
+    public String deleteUser(String userId) {
         try {
             UserEntity userEntity = userRepository.findById(userId)
                     .orElseThrow(() -> new UsernameNotFoundException("삭제할 사용자를 찾을 수 없습니다."));
@@ -154,7 +148,7 @@ public class UserService {
         }
     }
 
-    public String addAllowedUser(AllowedUserDTO allowedUserDTO) {
+    public String addAllowedUsers(AllowedUserDTO allowedUserDTO) {
         String encryptedRegNo = encryptRegNo(allowedUserDTO.regNo());
         AllowedUserEntity user = new AllowedUserEntity(allowedUserDTO.name(), encryptedRegNo);
         allowedUserRepository.save(user);
