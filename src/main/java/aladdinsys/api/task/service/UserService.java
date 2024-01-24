@@ -1,5 +1,8 @@
+/* (C) 2024 AladdinSystem License */
 package aladdinsys.api.task.service;
 
+
+import aladdinsys.api.task.Exception.CustomServiceException;
 import aladdinsys.api.task.dto.AllowedUserDTO;
 import aladdinsys.api.task.dto.UserDTO;
 import aladdinsys.api.task.entity.AllowedUserEntity;
@@ -9,6 +12,9 @@ import aladdinsys.api.task.repository.UserRepository;
 import aladdinsys.api.task.utils.jwt.JwtTokenUtil;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
@@ -29,54 +36,41 @@ public class UserService {
     private final AesBytesEncryptor aesBytesEncryptor;
     private final JwtTokenUtil jwtTokenUtil;
 
-    public UserService(UserRepository userRepository, AllowedUserRepository allowedUserRepository, PasswordEncoder passwordEncoder, AesBytesEncryptor aesBytesEncryptor, JwtTokenUtil jwtTokenUtil) {
-        this.userRepository = userRepository;
-        this.allowedUserRepository = allowedUserRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.aesBytesEncryptor = aesBytesEncryptor;
-        this.jwtTokenUtil = jwtTokenUtil;
-    }
-
-    public String signUp(UserDTO userDTO) {
-        JsonObject result = new JsonObject();
+    public ResponseEntity<String> signUp(UserDTO userDTO) {
 
         String encryptedRegNo = encryptRegNo(userDTO.regNo());
 
-        boolean isAllowed = allowedUserRepository
-                .findByNameAndRegNo(userDTO.name(), encryptedRegNo)
-                .isPresent();
-
+        boolean isAllowed = allowedUserRepository.findByNameAndRegNo(userDTO.name(), encryptedRegNo).isPresent();
         if (!isAllowed) {
-            return "회원 가입이 불가능한 사용자입니다.";
+            throw new CustomServiceException(HttpStatus.BAD_REQUEST, "회원 가입이 불가능한 사용자입니다.");
         }
 
         String encodedPassword = passwordEncoder.encode(userDTO.password());
 
-        UserEntity user = new UserEntity(
-                userDTO.userId(),
-                encodedPassword,
-                userDTO.name(),
-                encryptedRegNo
-        );
+        UserEntity user =
+                new UserEntity(userDTO.userId(), encodedPassword, userDTO.name(), encryptedRegNo);
 
-        if (!isDuplicated(user.getUserId())) {
-            userRepository.save(user);
-            result.addProperty("message", "저장이 완료되었습니다.");
-            result.addProperty("success", true);
-        } else {
-            result.addProperty("message", "아이디가 중복되었습니다.");
-            result.addProperty("success", false);
+        if (isDuplicated(user.getUserId())) {
+            throw new CustomServiceException(HttpStatus.BAD_REQUEST, "아이디가 중복되었습니다.");
         }
 
-        return new Gson().toJson(result);
+        userRepository.save(user);
+
+        JsonObject jsonResponse = new JsonObject();
+        jsonResponse.addProperty("success", true);
+        jsonResponse.addProperty("message", "저장이 완료되었습니다.");
+
+        return ResponseEntity.ok(jsonResponse.toString());
     }
 
     public String login(UserDTO userDTO) {
         String id = userDTO.userId();
         String password = userDTO.password();
         try {
-            UserEntity userEntity = userRepository.findByUserId(id)
-                    .orElseThrow(() -> new UsernameNotFoundException("회원이 존재하지 않습니다."));
+            UserEntity userEntity =
+                    userRepository
+                            .findByUserId(id)
+                            .orElseThrow(() -> new UsernameNotFoundException("회원이 존재하지 않습니다."));
 
             if (!passwordEncoder.matches(password, userEntity.getPassword())) {
                 throw new BadCredentialsException("비밀번호가 일치하지 않습니다.");
@@ -97,8 +91,10 @@ public class UserService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userId = authentication.getName();
 
-        UserEntity userEntity = userRepository.findById(userId)
-                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+        UserEntity userEntity =
+                userRepository
+                        .findById(userId)
+                        .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
         return new Gson().toJson(userEntity);
     }
 
@@ -119,8 +115,10 @@ public class UserService {
                 return "주민등록번호는 변경할 수 없습니다.";
             }
 
-            UserEntity userEntity = userRepository.findById(userId)
-                    .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+            UserEntity userEntity =
+                    userRepository
+                            .findById(userId)
+                            .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
 
             if (userDTO.password() != null && !userDTO.password().isEmpty()) {
                 String encodedPassword = passwordEncoder.encode(userDTO.password());
@@ -136,31 +134,22 @@ public class UserService {
         }
     }
 
-    public String deleteUser(String userId) {
-        try {
-            UserEntity userEntity = userRepository.findById(userId)
-                    .orElseThrow(() -> new UsernameNotFoundException("삭제할 사용자를 찾을 수 없습니다."));
+    public String deleteUser(String userId) throws Exception {
+        UserEntity userEntity =
+                userRepository
+                        .findById(userId)
+                        .orElseThrow(() -> new UsernameNotFoundException("삭제할 사용자를 찾을 수 없습니다."));
 
-            userRepository.delete(userEntity);
-            return "사용자가 성공적으로 삭제되었습니다.";
-        } catch (Exception ex) {
-            return "사용자 삭제 중 예기치 못한 오류가 발생했습니다.";
-        }
+        userRepository.delete(userEntity);
+        return "사용자가 성공적으로 삭제되었습니다.";
     }
 
-    public String addAllowedUsers(AllowedUserDTO allowedUserDTO) {
+    public void addAllowedUsers(AllowedUserDTO allowedUserDTO) {
         String encryptedRegNo = encryptRegNo(allowedUserDTO.regNo());
         AllowedUserEntity user = new AllowedUserEntity(allowedUserDTO.name(), encryptedRegNo);
         allowedUserRepository.save(user);
-        return "저장이 완료되었습니다.";
     }
 
-    /**
-     * 아이디 중복 체크
-     *
-     * @param userId
-     * @return
-     */
     public boolean isDuplicated(String userId) {
         return userRepository.findByUserId(userId).isPresent();
     }
@@ -174,10 +163,15 @@ public class UserService {
     private UserDTO convertEntityToDto(UserEntity userEntity) {
         return new UserDTO(
                 userEntity.getUserId(),
-                userEntity.getPassword(),
+                null,
                 userEntity.getName(),
-                userEntity.getRegNo()
-        );
+                userEntity.getRegNo());
     }
 
+    private ResponseEntity<String> createResponse(boolean success, String message, HttpStatus status) {
+        JsonObject result = new JsonObject();
+        result.addProperty("success", success);
+        result.addProperty("message", message);
+        return ResponseEntity.status(status).body(result.toString());
+    }
 }
