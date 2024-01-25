@@ -63,7 +63,7 @@ openapi3 {
 }
 
 ext {
-    snippetsDir = file('build/generated-snippets')
+    set('snippetsDir', file("build/generated-snippets"))
 }
 
 test {
@@ -74,19 +74,44 @@ asciidoctor {
     inputs.dir snippetsDir
     configurations 'asciidoctorExt'
     dependsOn test
+
+    sources{
+        include("**/index.adoc","**/*.adoc")
+    }
+
+    baseDirFollowsSourceFile()
 }
 
-tasks.named('test') {
+
+asciidoctor.doFirst {
+    delete file("src/main/resources/static/docs")
+}
+
+bootJar {
+    dependsOn asciidoctor
+    finalizedBy('copyDocument')
+}
+
+task copyDocument(type: Copy) {
+    dependsOn bootJar
+    from layout.buildDirectory.dir('docs/asciidoc').get().asFile
+    into file("src/main/resources/static/docs")
+}
+
+tasks.named('test', Test) {
+    outputs.dir snippetsDir
     useJUnitPlatform()
 }
+//spotless {
+//    java {
+//        target fileTree(dir: 'src/main/java', include: '**/*.java')
+//        //googleJavaFormat()
+//        removeUnusedImports()
+//        importOrder()
+//
+//        licenseHeader '/* (C) $YEAR AladdinSystem License */' // or licenseHeaderFile
+//    }
+//}
 
-spotless {
-    java {
-        target fileTree(dir: 'src/main/java', include: '**/*.java')
-        googleJavaFormat()
-        removeUnusedImports()
-        importOrder()
 
-        licenseHeader '/* (C) $YEAR AladdinSystem License */' // or licenseHeaderFile
-    }
-}
+

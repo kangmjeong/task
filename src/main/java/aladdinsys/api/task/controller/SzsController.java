@@ -5,13 +5,12 @@ package aladdinsys.api.task.controller;
 import aladdinsys.api.task.dto.UserDTO;
 import aladdinsys.api.task.service.UserService;
 import jakarta.validation.Valid;
+import java.security.Principal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.security.Principal;
 
 @RestController
 @RequestMapping(value = "/szs")
@@ -21,7 +20,7 @@ public class SzsController {
     private final UserService userService;
 
     @RequestMapping(value = "/signup", method = RequestMethod.POST)
-    public String signUp(@Valid @RequestBody UserDTO userDTO) throws Exception {
+    public String signUp(@Valid @RequestBody UserDTO userDTO) {
         return userService.signUp(userDTO);
     }
 
