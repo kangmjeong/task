@@ -1,0 +1,59 @@
+server:
+  port: 8080 # 내장 톰캣 포트번호
+
+#logging:
+#  level:
+#    org.springframework: DEBUG
+
+initial:
+  allowedUsers:
+    - name: "홍길동"
+      regNo: "860827-1655068"
+    - name: "김둘리"
+      regNo: "921108-1582816"
+    - name: "마징가"
+      regNo: "880601-2455116"
+    - name: "베지터"
+      regNO: "910411-1656116"
+    - name: "손오공"
+      regNo: "820326-2715702"
+
+encryption:
+  secret: 'asdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdf'
+  salt: 'sdfasdfasdfasdfasdf'
+
+jwt:
+  expiration_time: 86400000 #토큰 유효기간 24시간 설정
+  secret: 'sad1235asdfasdffsdf345346323sdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdgh12342342342342344234234234234dfgsDFCXzxczxcxczc56735234234fasdfsadf'
+
+spring:
+  # security 설정
+  security:
+    user:
+      name: admin
+      password: admin00!
+
+  # H2 Database 설정
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: 'jdbc:h2:tcp://localhost/~/task'   # H2 DB 연결 주소 (Embedded Mode)
+    #url: 'jdbc:h2://localhost/~/task'
+    username: sa              # H2 DB 접속 ID (사용자 지정)
+    password:                 # H2 DB 접속 PW (사용자 지정)
+
+  # H2 Console 설정
+  h2:
+    console: # H2 DB를 웹에서 관리할 수 있는 기능
+      enabled: true           # H2 Console 사용 여부
+      path: /h2-console       # H2 Console 접속 주소
+
+  # JPA 설정
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update        # DB 초기화 전략 (none, create, create-drop, update, validate)
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true      # 쿼리 로그 포맷 (정렬)
+        show_sql: true        # 쿼리 로그 출력
