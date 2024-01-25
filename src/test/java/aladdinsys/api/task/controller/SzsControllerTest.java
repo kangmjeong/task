@@ -65,7 +65,7 @@ class SzsControllerTest {
 
     @Test
     void signUp() throws Exception {
-        UserDTO validUser = new UserDTO("abcde123456", "abcde123456", "홍길동", "860824-1655068");
+        UserDTO validUser = new UserDTO("abcde1234567", "abcde1234567", "홍길동", "860824-1655068");
         ObjectMapper objectMapper = new ObjectMapper();
         String userJson = objectMapper.writeValueAsString(validUser);
         // MockMvc를 사용하여 HTTP 요청 수행 및 응답 검증
@@ -84,7 +84,7 @@ class SzsControllerTest {
         Assertions.assertEquals(expectedJsonResponse, jsonResponse);
     }
     }
-//
+
 //    @Test
 //    void login() throws Exception {
 //        JsonObject mockResponse = new JsonObject();
@@ -113,7 +113,7 @@ class SzsControllerTest {
 //                        )
 //                ));
 //    }
-//
+
 //    @Test
 //    void userDetail() throws Exception {
 //        when(jwtTokenUtil.validateToken(anyString())).thenReturn(true);
