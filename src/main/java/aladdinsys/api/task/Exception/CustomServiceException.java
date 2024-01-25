@@ -6,7 +6,6 @@ public class CustomServiceException extends RuntimeException {
     private HttpStatus status;
     private String message;
 
-
     public CustomServiceException(HttpStatus status, String message) {
         super(message);
         this.status = status;

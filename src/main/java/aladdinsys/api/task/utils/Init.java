@@ -15,7 +15,6 @@ import java.util.List;
 public class Init implements CommandLineRunner {
 
     private final UserService userService;
-
     @Override
     public void run(String... args) throws Exception {
         List<AllowedUserDTO> allowedUsers = Arrays.asList(
