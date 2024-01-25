@@ -24,6 +24,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
+import java.security.Principal;
 import java.util.Base64;
 
 @Service
@@ -36,7 +37,7 @@ public class UserService {
     private final AesBytesEncryptor aesBytesEncryptor;
     private final JwtTokenUtil jwtTokenUtil;
 
-    public ResponseEntity<String> signUp(UserDTO userDTO) {
+    public String signUp(UserDTO userDTO) {
 
         String encryptedRegNo = encryptRegNo(userDTO.regNo());
 
@@ -60,88 +61,80 @@ public class UserService {
         jsonResponse.addProperty("success", true);
         jsonResponse.addProperty("message", "저장이 완료되었습니다.");
 
-        return ResponseEntity.ok(jsonResponse.toString());
+        return jsonResponse.toString();
     }
 
     public String login(UserDTO userDTO) {
-        String id = userDTO.userId();
-        String password = userDTO.password();
-        try {
-            UserEntity userEntity =
-                    userRepository
-                            .findByUserId(id)
-                            .orElseThrow(() -> new UsernameNotFoundException("회원이 존재하지 않습니다."));
+        UserEntity userEntity = userRepository.findByUserId(userDTO.userId())
+                .orElseThrow(() -> new CustomServiceException(HttpStatus.UNAUTHORIZED, "회원이 존재하지 않습니다."));
 
-            if (!passwordEncoder.matches(password, userEntity.getPassword())) {
-                throw new BadCredentialsException("비밀번호가 일치하지 않습니다.");
-            }
-
-            UserDTO userDto = convertEntityToDto(userEntity);
-            String token = jwtTokenUtil.generateToken(userDto);
-            return token;
-
-        } catch (UsernameNotFoundException e) {
-            return "아이디가 틀렸습니다.";
-        } catch (BadCredentialsException e) {
-            return "비밀번호가 틀렸습니다.";
+        if (!passwordEncoder.matches(userDTO.password(), userEntity.getPassword())) {
+            throw new CustomServiceException(HttpStatus.UNAUTHORIZED, "비밀번호가 일치하지 않습니다.");
         }
+
+        UserDTO userDtoForToken = new UserDTO(userEntity.getUserId(), null, userEntity.getName(), null);
+        String token = jwtTokenUtil.generateToken(userDtoForToken);
+
+        JsonObject jsonResponse = new JsonObject();
+        jsonResponse.addProperty("success", true);
+        jsonResponse.addProperty("message", "로그인 성공");
+        jsonResponse.addProperty("token", token);
+        return jsonResponse.toString();
     }
 
-    public String userDetail() throws UsernameNotFoundException, BadCredentialsException {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userId = authentication.getName();
+    public String userDetail(String userId) {
 
-        UserEntity userEntity =
-                userRepository
-                        .findById(userId)
-                        .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
-        return new Gson().toJson(userEntity);
+        UserEntity userEntity = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomServiceException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
+
+        UserDTO userDto = new UserDTO(
+                userEntity.getUserId(),
+                userEntity.getPassword(),
+                userEntity.getName(),
+                userEntity.getRegNo()
+        );
+
+        JsonObject jsonResponse = new JsonObject();
+        jsonResponse.addProperty("success", true);
+        jsonResponse.add("user", new Gson().toJsonTree(userDto));
+        return jsonResponse.toString();
     }
 
     public String updateUserDetails(String userId, UserDTO userDTO) {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String authenticatedUserId = authentication.getName();
-
-            if (!authenticatedUserId.equals(userId)) {
-                return "수정할 수 있는 권한이 없습니다.";
-            }
-
-            if (userDTO.userId() != null && !userDTO.userId().equals(userId)) {
-                return "사용자 ID는 변경할 수 없습니다.";
-            }
-
-            if (userDTO.regNo() != null) {
-                return "주민등록번호는 변경할 수 없습니다.";
-            }
-
-            UserEntity userEntity =
-                    userRepository
-                            .findById(userId)
-                            .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
-
-            if (userDTO.password() != null && !userDTO.password().isEmpty()) {
-                String encodedPassword = passwordEncoder.encode(userDTO.password());
-                userEntity.setPassword(encodedPassword);
-            }
-
-            userRepository.save(userEntity);
-
-            return "사용자 정보가 성공적으로 업데이트되었습니다.";
-
-        } catch (Exception ex) {
-            return "사용자 정보 업데이트 중 오류가 발생했습니다.";
+        if (userDTO.userId() != null && !userDTO.userId().equals(userId)) {
+            throw new CustomServiceException(HttpStatus.BAD_REQUEST, "사용자 ID는 변경할 수 없습니다.");
         }
+
+        if (userDTO.regNo() != null) {
+            throw new CustomServiceException(HttpStatus.BAD_REQUEST, "주민등록번호는 변경할 수 없습니다.");
+        }
+
+        UserEntity userEntity = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomServiceException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
+
+        if (userDTO.password() != null && !userDTO.password().isEmpty()) {
+            String encodedPassword = passwordEncoder.encode(userDTO.password());
+            userEntity.setPassword(encodedPassword);
+        }
+
+        userRepository.save(userEntity);
+
+        JsonObject jsonResponse = new JsonObject();
+        jsonResponse.addProperty("success", true);
+        jsonResponse.addProperty("message", "사용자 정보가 성공적으로 업데이트되었습니다.");
+        return jsonResponse.toString();
     }
 
-    public String deleteUser(String userId) throws Exception {
-        UserEntity userEntity =
-                userRepository
-                        .findById(userId)
-                        .orElseThrow(() -> new UsernameNotFoundException("삭제할 사용자를 찾을 수 없습니다."));
+    public String deleteUser(String userId) {
+        UserEntity userEntity = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomServiceException(HttpStatus.NOT_FOUND, "삭제할 사용자를 찾을 수 없습니다."));
 
         userRepository.delete(userEntity);
-        return "사용자가 성공적으로 삭제되었습니다.";
+
+        JsonObject jsonResponse = new JsonObject();
+        jsonResponse.addProperty("success", true);
+        jsonResponse.addProperty("message", "사용자가 성공적으로 삭제되었습니다.");
+        return jsonResponse.toString();
     }
 
     public void addAllowedUsers(AllowedUserDTO allowedUserDTO) {
@@ -160,18 +153,4 @@ public class UserService {
         return Base64.getEncoder().encodeToString(encryptedBytes);
     }
 
-    private UserDTO convertEntityToDto(UserEntity userEntity) {
-        return new UserDTO(
-                userEntity.getUserId(),
-                null,
-                userEntity.getName(),
-                userEntity.getRegNo());
-    }
-
-    private ResponseEntity<String> createResponse(boolean success, String message, HttpStatus status) {
-        JsonObject result = new JsonObject();
-        result.addProperty("success", success);
-        result.addProperty("message", message);
-        return ResponseEntity.status(status).body(result.toString());
-    }
 }
