@@ -5,19 +5,6 @@ server:
 #  level:
 #    org.springframework: DEBUG
 
-initial:
-  allowedUsers:
-    - name: "홍길동"
-      regNo: "860827-1655068"
-    - name: "김둘리"
-      regNo: "921108-1582816"
-    - name: "마징가"
-      regNo: "880601-2455116"
-    - name: "베지터"
-      regNO: "910411-1656116"
-    - name: "손오공"
-      regNo: "820326-2715702"
-
 encryption:
   secret: 'asdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdf'
   salt: 'sdfasdfasdfasdfasdf'
