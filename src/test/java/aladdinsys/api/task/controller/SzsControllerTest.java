@@ -2,13 +2,18 @@ package aladdinsys.api.task.controller;
 
 import aladdinsys.api.task.ApiDocumentUtils;
 import aladdinsys.api.task.dto.UserDTO;
+import aladdinsys.api.task.entity.UserEntity;
+import aladdinsys.api.task.repository.UserRepository;
 import aladdinsys.api.task.service.UserService;
 import aladdinsys.api.task.utils.jwt.JwtTokenUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.jayway.jsonpath.JsonPath;
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -22,6 +27,7 @@ import org.springframework.restdocs.RestDocumentationContextProvider;
 import org.springframework.restdocs.RestDocumentationExtension;
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation;
 import org.springframework.restdocs.payload.JsonFieldType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -31,7 +37,9 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
+import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
@@ -45,6 +53,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ExtendWith(RestDocumentationExtension.class)
+//@Transactional
 class SzsControllerTest {
 
     @Autowired
@@ -54,7 +63,10 @@ class SzsControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private UserService userService; // 실제 서비스 사용
+    private UserService userService;
+
+    @Autowired
+    PasswordEncoder passwordEncoder;
 
     @BeforeEach
     public void setUp(RestDocumentationContextProvider restDocumentation) {
@@ -64,55 +76,63 @@ class SzsControllerTest {
     }
 
     @Test
+    @DisplayName("POST /szs/signup")
     void signUp() throws Exception {
-        UserDTO validUser = new UserDTO("abcde1234567", "abcde1234567", "홍길동", "860824-1655068");
+        UserDTO validUser = new UserDTO("abcde123456", "abcde123456", "홍길동", "860824-1655068");
         ObjectMapper objectMapper = new ObjectMapper();
         String userJson = objectMapper.writeValueAsString(validUser);
-        // MockMvc를 사용하여 HTTP 요청 수행 및 응답 검증
+
         ResultActions resultActions = mockMvc.perform(post("/szs/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(userJson))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("저장이 완료되었습니다.")); // 이 줄의 끝에 불필요한 점(.) 제거
+                .andExpect(jsonPath("$.message").value("저장이 완료되었습니다."))
+                .andDo(document("{class-name}/{method-name}",
+                        ApiDocumentUtils.getDocumentRequest(),
+                        ApiDocumentUtils.getDocumentResponse(),
+                        responseFields(
+                                fieldWithPath("success").type(JsonFieldType.BOOLEAN).description("성공 여부"),
+                                fieldWithPath("message").type(JsonFieldType.STRING).description("응답 메시지")
+                        )
+                ));
 
-        // 응답 문자열 추출
         String jsonResponse = resultActions.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
 
-        // JSON 문자열을 예상한 결과와 비교
-        String expectedJsonResponse = "{\"success\": true, \"message\": \"저장이 완료되었습니다.\"}";
-        Assertions.assertEquals(expectedJsonResponse, jsonResponse);
-    }
+        assertThat(JsonPath.<Boolean>read(jsonResponse, "$.success")).isEqualTo(true);
+        assertThat(JsonPath.<String>read(jsonResponse, "$.message")).isEqualTo("저장이 완료되었습니다.");
     }
 
-//    @Test
-//    void login() throws Exception {
-//        JsonObject mockResponse = new JsonObject();
-//        mockResponse.addProperty("success", true);
-//        mockResponse.addProperty("message", "로그인 성공");
-//        mockResponse.addProperty("token", "someGeneratedToken");
-//        when(userService.login(any(UserDTO.class))).thenReturn(mockResponse.toString());
-//
-//        String userJson = "{\"userId\":\"abcde123456\",\"password\":\"abcde123456\"}";
-//
-//        mockMvc.perform(post("/szs/login")
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .content(userJson))
-//                .andExpect(status().isOk())
-//                .andExpect(jsonPath("$.success").value(true))
-//                .andExpect(jsonPath("$.message").value("로그인 성공"))
-//                .andExpect(jsonPath("$.token").exists())
-//
-//                .andDo(document("{class-name}/{method-name}",
-//                        ApiDocumentUtils.getDocumentRequest(),
-//                        ApiDocumentUtils.getDocumentResponse(),
-//                        responseFields(
-//                                fieldWithPath("success").type(JsonFieldType.BOOLEAN).description("성공 여부"),
-//                                fieldWithPath("message").type(JsonFieldType.STRING).description("응답 메시지"),
-//                                fieldWithPath("token").type(JsonFieldType.STRING).description("JWT 토큰")
-//                        )
-//                ));
-//    }
+    @Test
+    @DisplayName("POST /szs/login")
+    void login() throws Exception {
+        UserDTO validUser = new UserDTO("abcde123456", "abcde123456", null, null);
+        ObjectMapper objectMapper = new ObjectMapper();
+        String userJson = objectMapper.writeValueAsString(validUser);
+
+        ResultActions resultActions = mockMvc.perform(post("/szs/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(userJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("로그인 성공"))
+                .andExpect(jsonPath("$.token").exists())
+                .andDo(document("{class-name}/{method-name}",
+                        ApiDocumentUtils.getDocumentRequest(),
+                        ApiDocumentUtils.getDocumentResponse(),
+                        responseFields(
+                                fieldWithPath("success").type(JsonFieldType.BOOLEAN).description("성공 여부"),
+                                fieldWithPath("message").type(JsonFieldType.STRING).description("응답 메시지"),
+                                fieldWithPath("token").type(JsonFieldType.STRING).description("JWT 토큰")
+                        )));
+
+        String jsonResponse = resultActions.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertThat(JsonPath.<Boolean>read(jsonResponse, "$.success")).isEqualTo(true);
+        assertThat(JsonPath.<String>read(jsonResponse, "$.message")).isEqualTo("로그인 성공");
+        assertThat(JsonPath.<String>read(jsonResponse, "$.token")).isNotNull();
+
+    }
 
 //    @Test
 //    void userDetail() throws Exception {
@@ -220,3 +240,4 @@ class SzsControllerTest {
 //                        )
 //                ));
 //    }
+}

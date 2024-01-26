@@ -19,12 +19,12 @@ public class SzsController {
 
     private final UserService userService;
 
-    @RequestMapping(value = "/signup", method = RequestMethod.POST)
+    @RequestMapping(value = "/signup", method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
     public String signUp(@Valid @RequestBody UserDTO userDTO) {
         return userService.signUp(userDTO);
     }
 
-    @RequestMapping(value = "/login", method = RequestMethod.POST)
+    @RequestMapping(value = "/login", method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
     public String login(@RequestBody UserDTO userDTO) {
         return userService.login(userDTO);
     }

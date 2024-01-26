@@ -1,0 +1,12 @@
+= 알라딘 시스템 REST API 문서
+API 문서는 AsciiDoc으로 작성되었습니다.
+:doctype: book
+:icons: font
+:source-highlighter: highlightjs
+:toc: left
+:toc-title: API 목차
+:toclevels: 2
+:sectlinks:
+:docinfo: shared-head
+
+include::task.adoc[]

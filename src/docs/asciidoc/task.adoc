@@ -20,16 +20,16 @@ include::{snippets}/szs-controller-test/login/http-request.adoc[]
 include::{snippets}/szs-controller-test/login/http-response.adoc[]
 
 === 회원정보 조회
-include::{snippets}/szs-controller-test/user-detail/http-request.adoc[]
-include::{snippets}/szs-controller-test/user-detail/http-response.adoc[]
+//include::{snippets}/szs-controller-test/user-detail/http-request.adoc[]
+//include::{snippets}/szs-controller-test/user-detail/http-response.adoc[]
 
 === 회원정보 수정
-include::{snippets}/szs-controller-test/update-user-details/http-request.adoc[]
-include::{snippets}/szs-controller-test/update-user-details/http-response.adoc[]
+//include::{snippets}/szs-controller-test/update-user-details/http-request.adoc[]
+//include::{snippets}/szs-controller-test/update-user-details/http-response.adoc[]
 
 === 회원탈퇴
-include::{snippets}/szs-controller-test/delete-user/http-request.adoc[]
-include::{snippets}/szs-controller-test/delete-user/http-response.adoc[]
+//include::{snippets}/szs-controller-test/delete-user/http-request.adoc[]
+//include::{snippets}/szs-controller-test/delete-user/http-response.adoc[]
 
 
 
