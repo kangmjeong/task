@@ -102,16 +102,17 @@ tasks.named('test', Test) {
     outputs.dir snippetsDir
     useJUnitPlatform()
 }
-//spotless {
-//    java {
-//        target fileTree(dir: 'src/main/java', include: '**/*.java')
-//        //googleJavaFormat()
-//        removeUnusedImports()
-//        importOrder()
-//
-//        licenseHeader '/* (C) $YEAR AladdinSystem License */' // or licenseHeaderFile
-//    }
-//}
+
+spotless {
+    java {
+        target fileTree(dir: 'src/main/java', include: '**/*.java')
+        googleJavaFormat()
+        removeUnusedImports()
+        importOrder()
+
+        licenseHeader '/* (C) $YEAR AladdinSystem License */'
+    }
+}
 
 
 

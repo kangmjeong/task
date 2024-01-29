@@ -16,15 +16,15 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AllowedUserEntity {
 
-    @Id
-    @Column(nullable = false)
-    private String name;
+  @Id
+  @Column(nullable = false)
+  private String name;
 
-    @Column(nullable = false)
-    private String regNo;
+  @Column(nullable = false)
+  private String regNo;
 
-    public AllowedUserEntity(String name, String regNo) {
-        this.name = name;
-        this.regNo = regNo;
-    }
+  public AllowedUserEntity(String name, String regNo) {
+    this.name = name;
+    this.regNo = regNo;
+  }
 }

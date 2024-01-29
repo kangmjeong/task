@@ -17,30 +17,46 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class SzsController {
 
-    private final UserService userService;
+  private final UserService userService;
 
-    @RequestMapping(value = "/signup", method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
-    public String signUp(@Valid @RequestBody UserDTO userDTO) {
-        return userService.signUp(userDTO);
-    }
+  @RequestMapping(
+      value = "/signup",
+      method = RequestMethod.POST,
+      consumes = "application/json",
+      produces = "application/json")
+  public String signUp(@Valid @RequestBody UserDTO userDTO) {
+    return userService.signUp(userDTO);
+  }
 
-    @RequestMapping(value = "/login", method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
-    public String login(@RequestBody UserDTO userDTO) {
-        return userService.login(userDTO);
-    }
+  @RequestMapping(
+      value = "/login",
+      method = RequestMethod.POST,
+      consumes = "application/json",
+      produces = "application/json")
+  public String login(@RequestBody UserDTO userDTO) {
+    return userService.login(userDTO);
+  }
 
-    @RequestMapping(value = "/user-detail", method = RequestMethod.GET)
-    public String userDetail(Principal principal) {
-        return userService.userDetail(principal.getName());
-    }
+  @RequestMapping(value = "/user-detail", method = RequestMethod.GET, produces = "application/json")
+  public String userDetail(Principal principal) {
+    return userService.userDetail(principal.getName());
+  }
 
-    @RequestMapping(value = "/modify-user", method = RequestMethod.PUT)
-    public String updateUserDetails(@RequestBody UserDTO userDTO, Principal principal) {
-        return userService.updateUserDetails(principal.getName(), userDTO);
-    }
+  @RequestMapping(
+      value = "/modify-user",
+      method = RequestMethod.PUT,
+      consumes = "application/json",
+      produces = "application/json")
+  public String updateUserDetails(@RequestBody UserDTO userDTO, Principal principal) {
+    return userService.updateUserDetails(principal.getName(), userDTO);
+  }
 
-    @RequestMapping(value = "/delete-user", method = RequestMethod.DELETE)
-    public String deleteUser(Principal principal) {
-        return userService.deleteUser(principal.getName());
-    }
+  @RequestMapping(
+      value = "/delete-user",
+      method = RequestMethod.DELETE,
+      consumes = "application/json",
+      produces = "application/json")
+  public String deleteUser(Principal principal) {
+    return userService.deleteUser(principal.getName());
+  }
 }
